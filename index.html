@@ -1,0 +1,241 @@
+<!DOCTYPE html><html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXORA AI</title><style>
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Arial,sans-serif;
+  background:#07111f;
+  color:white;
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+}
+.app{
+  width:100%;
+  max-width:600px;
+  min-height:100vh;
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+}
+header{text-align:center;padding:18px 0}
+.logo{
+  width:85px;height:85px;border-radius:50%;
+  margin:auto;background:#102d4b;
+  border:2px solid #00d9ff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:38px;box-shadow:0 0 25px #00d9ff55;
+}
+h1{color:#00d9ff;letter-spacing:3px;margin-bottom:5px}
+.status{color:#8faecb;font-size:13px}
+#chat{
+  flex:1;min-height:250px;max-height:48vh;
+  overflow-y:auto;padding:10px 0;
+}
+.msg{
+  padding:12px 15px;border-radius:15px;
+  margin:10px 0;line-height:1.5;
+  overflow-wrap:anywhere;
+}
+.bot{background:#14263a;border:1px solid #243c54}
+.user{background:#005b79;margin-left:35px}
+.controls{padding:12px 0}
+.row{display:flex;gap:8px;margin-bottom:10px}
+input,select,button{
+  font-size:15px;border-radius:10px;padding:12px;
+}
+input{
+  min-width:0;flex:1;background:#102033;
+  border:1px solid #34516d;color:white;
+}
+button{
+  background:#00c8ed;color:#04121e;
+  border:0;font-weight:bold;cursor:pointer;
+}
+button:active{transform:scale(.97)}
+#mic{width:100%;padding:16px;font-size:17px}
+#send{min-width:75px}
+select{background:#102033;color:white;border:1px solid #34516d}
+.small{font-size:12px;color:#91a9c0;text-align:center;line-height:1.6}
+</style></head><body>
+<div class="app">
+<header>
+  <div class="logo">🤖</div>
+  <h1>NEXORA AI</h1>
+  <div class="status" id="status">● Ready to assist you</div>
+</header><div id="chat">
+  <div class="msg bot">
+    Hello! I'm NEXORA, your personal assistant. 👋<br>
+    Type a message or tap the microphone and say "Hello NEXORA".
+  </div>
+</div><div class="controls">
+  <div class="row">
+    <input id="message" placeholder="Type your message..." autocomplete="off">
+    <button id="send">Send</button>
+  </div><button id="mic">🎤 Start Voice Assistant</button>
+
+  <div class="row" style="margin-top:10px">
+    <label for="voice">Voice:</label>
+    <select id="voice">
+      <option value="female">Female</option>
+      <option value="male">Male</option>
+    </select>
+    <button id="speakTest">🔊 Test</button>
+  </div>
+  <div class="small">
+    Voice recognition requires browser microphone permission.<br>
+    This starter version does not yet control other mobile apps.
+  </div>
+</div>
+</div><script>
+const chat=document.getElementById("chat");
+const input=document.getElementById("message");
+const statusText=document.getElementById("status");
+const micButton=document.getElementById("mic");
+
+function addMessage(text,type){
+  const div=document.createElement("div");
+  div.className="msg "+type;
+  div.textContent=text;
+  chat.appendChild(div);
+  chat.scrollTop=chat.scrollHeight;
+}
+
+function speak(text){
+  if(!("speechSynthesis" in window)){
+    statusText.textContent="Speech output is not supported by this browser.";
+    return;
+  }
+  speechSynthesis.cancel();
+  const utterance=new SpeechSynthesisUtterance(text);
+  const voices=speechSynthesis.getVoices();
+  const wanted=document.getElementById("voice").value;
+  const matching=voices.filter(v=>v.lang.startsWith("en"));
+  let selected=matching.find(v=>
+    wanted==="female"
+    ? /female|samantha|zira|aria|jenny/i.test(v.name)
+    : /male|david|mark|guy/i.test(v.name)
+  );
+  if(selected) utterance.voice=selected;
+  utterance.lang="en-US";
+  utterance.rate=1;
+  speechSynthesis.speak(utterance);
+}
+
+function reply(text){
+  const q=text.toLowerCase().trim();
+  let answer;
+
+  if(/\b(hi|hello|hey)\b/.test(q)){
+    answer="Hello! I'm NEXORA AI. How can I help you?";
+  }else if(q.includes("your name")){
+    answer="My name is NEXORA AI, your personal assistant.";
+  }else if(q.includes("how are you")){
+    answer="I'm ready to help you. What would you like to do?";
+  }else if(q.includes("time")){
+    answer="The time on your device is "+new Date().toLocaleTimeString()+".";
+  }else if(q.includes("date")){
+    answer="Today's date is "+new Date().toLocaleDateString()+".";
+  }else if(q.includes("help")){
+    answer="You can greet me, ask for the date or time, or type a question. Real AI answers and mobile app control need additional integration.";
+  }else if(q.includes("open youtube")){
+    answer="You can open YouTube using the button below.";
+    addMessage("▶ Open YouTube: https://www.youtube.com","bot");
+  }else if(q.includes("open google")){
+    answer="You can open Google using the button below.";
+    addMessage("🔎 Open Google: https://www.google.com","bot");
+  }else{
+    answer="I received your message. This starter version uses simple built-in replies, not an online AI model yet. To answer general questions intelligently, we need to connect an AI service.";
+  }
+
+  addMessage(answer,"bot");
+  speak(answer);
+}
+
+function sendMessage(){
+  const text=input.value.trim();
+  if(!text)return;
+  addMessage(text,"user");
+  input.value="";
+  reply(text);
+}
+
+document.getElementById("send").addEventListener("click",sendMessage);
+input.addEventListener("keydown",e=>{
+  if(e.key==="Enter")sendMessage();
+});
+
+document.getElementById("speakTest").addEventListener("click",()=>{
+  speak("Hello! I am NEXORA AI. Your assistant is ready.");
+});
+
+let recognition=null;
+let listening=false;
+
+const SpeechRecognition=
+  window.SpeechRecognition||window.webkitSpeechRecognition;
+
+if(SpeechRecognition){
+  recognition=new SpeechRecognition();
+  recognition.lang="en-US";
+  recognition.continuous=false;
+  recognition.interimResults=false;
+
+  recognition.onstart=()=>{
+    listening=true;
+    micButton.textContent="🔴 Listening... Speak now";
+    statusText.textContent="Listening to your voice...";
+  };
+
+  recognition.onresult=e=>{
+    const text=e.results[0][0].transcript;
+    input.value=text;
+    addMessage(text,"user");
+    input.value="";
+    reply(text);
+  };
+
+  recognition.onerror=e=>{
+    statusText.textContent="Microphone error: "+e.error;
+    micButton.textContent="🎤 Start Voice Assistant";
+    listening=false;
+
+    if(e.error==="not-allowed"||e.error==="service-not-allowed"){
+      addMessage("Microphone access was denied. Open this page in a supported browser using HTTPS, then allow microphone permission in the browser settings.","bot");
+    }else if(e.error==="network"){
+      addMessage("Voice recognition needs a working internet connection in browsers that use an online speech service.","bot");
+    }else{
+      addMessage("Voice recognition error: "+e.error+". Try again or type your message.","bot");
+    }
+  };
+
+  recognition.onend=()=>{
+    listening=false;
+    micButton.textContent="🎤 Start Voice Assistant";
+    statusText.textContent="● Ready to assist you";
+  };
+}else{
+  micButton.textContent="🎤 Voice recognition unavailable";
+  statusText.textContent="Try a supported browser such as Chrome.";
+}
+
+micButton.addEventListener("click",()=>{
+  if(!recognition){
+    addMessage("Your current browser does not support speech recognition. Try opening this website in Chrome.","bot");
+    return;
+  }
+  if(listening){
+    recognition.stop();
+    return;
+  }
+  try{
+    recognition.start();
+  }catch(error){
+    statusText.textContent="Please wait a moment and try again.";
+  }
+});
+</script></body>
+</html>
